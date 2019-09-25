@@ -1,0 +1,208 @@
+<!doctype html>
+<html>
+<header><title>Word Twist!</title></header>    
+<script src="https://localhost-ddcottingham-1.paiza-user.cloud/~ubuntu/index.html"></script>
+<body id="body1">
+    <style>
+            div.a{
+                text-align: center;
+            }
+    </style>
+    <script>
+        $.ajax({
+                url: "session.php",
+                method: "GET",
+                success : function(data) {
+                    console.log(data);
+                    console.log(data[0]);
+                    console.log(data[1]);
+                    console.log(data[2]);
+                    console.log(data[3]);
+                    console.log(data[4]);
+                    if(data != undefined && data != "Empty"){
+                        if(data[0] != null){
+                            document.getElementById("username").innerText = "Welcome "+data[0]+" !" ;
+                        }
+                        else{
+                            document.getElementById("username").innerText = "Welcome !" ;
+                        }
+                        if(data[1] != null){
+                            setRack(data[1]);
+                        }
+                        if(data[3] != null){
+                            setGuesses(data[3]);
+                        }
+                        if(data[2] != null){
+                            handleData(data[2]);
+                        }
+                       
+                        if(data[4] != null){
+                            setWordLengthCount(data[4]);
+                        }
+                    }             
+                }
+            })
+    </script>
+    
+    <div class="a">
+            <h1>Welcome to Wordtwist! Let's Get Twisted!!</h1>
+            <h3 id = "username"></h3>
+            Please Enter your favorite Color : <input type = "color" id="favColor" >
+            <p></p>
+            Please Enter your Name: <input type="text" id="name">
+            <button onclick = "submitName()">Submit Name</button>
+    <div class="a">
+
+        
+    <button onclick="randomRackGenerator()">
+            Random Rack
+    </button>
+
+
+    <h2 id = "Rack">...</h2>
+
+ 
+    <p></p>
+    <button onclick="checkRack()">Check</button>
+
+    Please Enter your guess: <input type="text" id="guess">
+    <p></p>
+    
+    <h3 id = "correct_count">Correct Guesses</h3>
+    <h2 id = "correct"></h2>
+
+    <h3 id = "length"></h3>
+    <!-- <ul id = "correct-answers">
+        
+    </ul> -->
+    
+
+    <script>
+        var rackSize = 0;
+        var count_of_Correct = 0;
+        var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        var charactersLength = characters.length;
+        var result = new Array(7);
+        var resultString = "";
+        var wordList = new Array();
+        //var wordLength = new Array(7);
+        var correctGuessList = new Array();
+        var wordLengthCount =[0,0,0,0,0,0,0];
+        
+        var setRack = function (data){
+            result = data;
+            document.getElementById("Rack").innerText = data;
+        }
+        var setWordLengthCount = function (data){
+            wordLengthCount = data;
+            document.getElementById("length").innerText = "One Letter:"+wordLengthCount[0]+"\nTwo Letters:"+wordLengthCount[1]+"\nThree Letters:"+wordLengthCount[2]+"\nFour Letters:"+wordLengthCount[3]+"\nFive Letters:"+wordLengthCount[4]+"\nSix Letters:"+wordLengthCount[5]+"\nSeven Letters:"+wordLengthCount[6]; 
+        }
+        var setGuesses = function (data){
+            correctGuessList = data;
+            document.getElementById("correct").innerText = correctGuessList;
+            count_of_Correct = correctGuessList.length;
+            document.getElementById("correct_count").innerText = "Correct Guesses: " + count_of_Correct;
+        }
+        var randomRackGenerator = function (evt){
+            
+            for ( var i = 0; i < 7; i++ ) {
+                result[i] = characters.charAt(Math.floor(Math.random() * charactersLength));
+            }
+            result.sort();
+            wordLengthCount =[0,0,0,0,0,0,0];
+            correctGuessList = [];
+            document.getElementById("correct").innerText = correctGuessList;
+            count_of_Correct = 0;
+            document.getElementById("correct_count").innerText = "Correct Guesses: " + count_of_Correct;
+            resultString =result.join('');
+            document.getElementById("Rack").innerText = result;
+            
+            $.ajax({
+                method: "GET",
+                url: "api.php",
+                data: { "receiver": resultString},
+                success : function(data) {
+                    handleData(data);
+                }
+            })  
+        }
+        var handleData = function(data) {
+            wordList = handleDuplicates(data);
+            if(wordList == null || wordList == []){
+                document.getElementById("length").innerText = "This rack has no possible words, please generate another rack";
+            }
+            console.log(wordList);
+            // Create list elements for each word
+            wordList.forEach( function(word) {
+                wordLengthCount[word.length-1] = wordLengthCount[word.length-1] +1;
+                document.getElementById("length").innerText = "One Letter:"+wordLengthCount[0]+"\nTwo Letters:"+wordLengthCount[1]+"\nThree Letters:"+wordLengthCount[2]+"\nFour Letters:"+wordLengthCount[3]+"\nFive Letters:"+wordLengthCount[4]+"\nSix Letters:"+wordLengthCount[5]+"\nSeven Letters:"+wordLengthCount[6];
+            });
+            $.ajax({
+                method: "POST",
+                url: "session.php",
+                data: { "receiver_name": document.getElementById("name").value,"rack":result,"wordList":wordList,"correctGuesses":correctGuessList,"wordLengthCount":wordLengthCount},
+                success : function(data) {
+                    
+                }
+            })
+        }
+        
+        // Used to delete duplicates in the array.
+        var handleDuplicates = function(data) {
+            let newArray = [];
+            data.forEach( function(word){
+                if(!newArray.includes(word)){
+                    newArray.push(word)
+                }
+            })
+            return newArray;
+        }
+        
+        var checkRack = function (evt){
+            var fee = document.getElementById("guess").value;
+            fee = fee.toUpperCase();
+            if(wordList.includes(fee,0) && correctGuessList.includes(fee,0) == 0){
+                correctGuessList.push(fee);
+               // document.getElementById(fee).style.visibility = "visible";
+                document.getElementById("correct").innerText = correctGuessList;
+                count_of_Correct ++;
+                document.getElementById("correct_count").innerText = "Correct Guesses: " + count_of_Correct;
+                wordLengthCount[fee.length-1] = wordLengthCount[fee.length-1] -1;
+                document.getElementById("length").innerText = "One Letter:"+wordLengthCount[0]+"\nTwo Letters:"+wordLengthCount[1]+"\nThree Letters:"+wordLengthCount[2]+"\nFour Letters:"+wordLengthCount[3]+"\nFive Letters:"+wordLengthCount[4]+"\nSix Letters:"+wordLengthCount[5]+"\nSeven Letters:"+wordLengthCount[6]; 
+            }
+            $.ajax({
+                method: "POST",
+                url: "session.php",
+                data: { "receiver_name": document.getElementById("name").value,"rack":result,"wordList":wordList,"correctGuesses":correctGuessList,"wordLengthCount":wordLengthCount},
+                success : function(data) {
+                    
+                }
+            })
+        }
+        var submitName = function (data){
+            document.getElementById("username").innerText="Welcome "+document.getElementById("name").value+" !";
+            $.ajax({
+                method: "POST",
+                url: "session.php",
+                data: { "receiver_name": document.getElementById("name").value,"rack":result,"wordList":wordList,"correctGuesses":correctGuessList,"wordLengthCount":wordLengthCount},
+                success : function(data) {
+                    
+                }
+            })
+        }
+        var changeColorHandler = function (evt){
+            let mycolor = evt.currentTarget.value
+            document.getElementById("body1").style.backgroundColor = mycolor;
+        }
+        document.querySelector("#favColor").addEventListener(
+            "change",
+            changeColorHandler
+        )
+        
+    
+    </script>
+    
+
+
+    </body>
+</html>
